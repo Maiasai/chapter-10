@@ -1,10 +1,15 @@
 /** @type {import('next').NextConfig} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
       remotePatterns: [
         {
-          protocol: 'https',       // 画像URLのプロトコル
-          hostname: 'placehold.jp' // 画像のドメイン
+          protocol: 'https',
+          hostname: 'placehold.jp',
+        },
+        {
+          protocol: 'https',
+          hostname: 'images.microcms-assets.io',
         },
       ],
     },
