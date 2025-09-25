@@ -1,3 +1,4 @@
+//フロント　記事編集画面
 "use client";
 
 import React from 'react';
@@ -34,7 +35,7 @@ const ArticlePage= ({params}:Props) => {
     const fetcher = async () : Promise < void > => {
       try {  
         setLoading(true)
-        const res = await fetch(`/api/admin/posts/${id}`)
+        const res = await fetch(`/api/posts/${id}`)
 
         if(!res.ok){
           const text = await res.text();
@@ -42,7 +43,7 @@ const ArticlePage= ({params}:Props) => {
         }
 
         const data: Post = await res.json()
-        console.log("取得データ",data.post);
+        console.log("取得データ",data.posts);
 
 
         setPost(data) // dataをそのままセット
@@ -84,11 +85,11 @@ const ArticlePage= ({params}:Props) => {
 
     <div className='w-full max-w-3xl mx-auto p-4 m-0'>
     <div className='flex justify-between'>
-      <p className='text-gray-400 text-[12.8px] list-none'>{new Date(post.post.createdAt).toLocaleDateString('ja-JP')}</p>
+      <p className='text-gray-400 text-[12.8px] list-none'>{new Date(post.posts.createdAt).toLocaleDateString('ja-JP')}</p>
           
 
       <ul className='flex'>
-        {post.post.postCategories?.map((cat=> (
+        {post.posts.postCategories?.map((cat=> (
           <li key={cat.category.id} 
           className='text-blue-600 text-[12.8px] mr-2 py-1  px-2 border border-blue-500 rounded list-none'>{cat.category.name}</li>
         )))}
@@ -96,9 +97,9 @@ const ArticlePage= ({params}:Props) => {
 
         
       </div>
-        <p className='text-black text-2xl mt-2 mb-4'>{post.post.title}</p>
+        <p className='text-black text-2xl mt-2 mb-4'>{post.posts.title}</p>
         <p className='text-black '
-          dangerouslySetInnerHTML={{ __html:post.post.content }}/>
+          dangerouslySetInnerHTML={{ __html:post.posts.content }}/>
       </div>
 
     </div>

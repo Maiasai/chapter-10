@@ -1,3 +1,5 @@
+//フロント　記事一覧画面
+
 "use client";
 
 import React from 'react';
@@ -23,7 +25,7 @@ const TopPage: React.FC = () => {
   useEffect(() => {
     const fetcher = async () => {
     try{
-      const res = await fetch('/api/admin/posts')
+      const res = await fetch('/api/posts')
 
 
       if(!res.ok){
