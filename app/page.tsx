@@ -13,14 +13,6 @@ type Post = {
 }
 
 
-// HTML文字列 → <br>テキストだけ抽出（タグを除去）
-const stripHtml = (html):string => {
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  return temp.textContent || '';
-};
-
-
 const TopPage: React.FC = () => {
   const [loading, setLoading] = useState< boolean >(true);
   const [error, setError] = useState< string | null >(null);
