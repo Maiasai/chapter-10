@@ -209,15 +209,14 @@ const handleSubmit = async(e:React.FormEvent) => {
   const isValid:PostFormErrors = validateForm(formData);
 
   if(Object.keys(isValid).length>0){
-  setErrors(isValid);
-  setIsLoading(false);
-  return;
+    setErrors(isValid);
+    setIsLoading(false);
+    return;
   }
 
-  setIsLoading(true);
-  setSuccess(false);
+    setIsLoading(true);
 
-if(!isValid)return;
+  if(!isValid)return;
 
   try{
     // ここで payload を作る
@@ -237,27 +236,27 @@ if(!isValid)return;
       body : JSON.stringify(payload),//avaScript のオブジェクトや配列を JSON 文字列に変換する関数
     });
 
-  if(!res.ok){
-    const text = await res.text();//レスポンスボディをテキストとして読み取る。サーバーが JSON で返しているか不明なときに安全に中身を取る方法。
-    throw new Error (`HTTP ${res.status}-${text}`)
+    if(!res.ok){
+      const text = await res.text();//レスポンスボディをテキストとして読み取る。サーバーが JSON で返しているか不明なときに安全に中身を取る方法。
+      throw new Error (`HTTP ${res.status}-${text}`)
+    }
+    
+
+    setIsOpen(false); //プルダウンも閉じる
+
+    alert("記事を更新しました！");
+
+  } catch (err) {
+    setErrors(err.message);
+    
+  } finally {
+    setIsLoading(false);
   }
-  
-
-  setIsOpen(false); //プルダウンも閉じる
-
-  alert("記事を作成しました！");
-
-} catch (err) {
-  setErrors(err.message);
-  
-} finally {
-  setIsLoading(false);
-}
 };
 
-if(isLoading){
-  return <p>読み込み中...</p>
-};
+  if(isLoading){
+    return <p>読み込み中...</p>
+  };
 
 
 //削除API
@@ -277,12 +276,12 @@ const handleDelete = async (postId:number)=> {
     throw new Error (`HTTP${res.status}-${text}`)
   }
 
-  alert("記事を削除しました！");
-  window.location.href = "/admin/posts";// 削除後に一覧ページへ遷移
+    alert("記事を削除しました！");
+    window.location.href = "/admin/posts";// 削除後に一覧ページへ遷移
 
   }catch (err:any) {
-  console.log("通信エラー:",err);
-  setErrors(err.message);
+    console.log("通信エラー:",err);
+    setErrors(err.message);
 
   }finally{
     setIsLoading(false);
@@ -311,24 +310,11 @@ return (
            categories={categories} //プルダウン用
            selectedCategories={selectedCategories} //選択状態用
            toggleCategory={toggleCategory}
+           mode="edit"
+           handleDelete={handleDelete}
+           loading={loading}
          />
         
-        <div className="flex">
-          <CreateButton
-            type="submit"
-            disabled={isLoading}
-            >
-            更新
-          </CreateButton>
-
-          <DeleteButton
-            type="submit"
-            onClick={()=>handleDelete(formData.id)}// ここで記事IDを渡す
-            disabled={isLoading}
-          >
-            削除
-          </DeleteButton>
-        </div>
       </div>
     </form>
 

@@ -28,7 +28,7 @@ interface Category {
 const New = () => {
   
   const [isOpen,setIsOpen]=useState<boolean>(false);//カテゴリ選択欄（プルダウン開閉箇所）
-  const [isLoading,setIsLoading]=useState<boolean>(false);
+  const [loading,setLoading]=useState<boolean>(false);
   const [errors, setErrors] = useState<PostFormErrors>({});
 
   //カテゴリをAPIから取得
@@ -85,7 +85,7 @@ const New = () => {
       categories : newSelected.map(c => ({ id: c.id })) // {id:number} の形に
       }));
 
-    setIsLoading(false); // return の前に必ず実行！
+    setLoading(false); // return の前に必ず実行！
     return newSelected; //最終的に更新した配列を返す
    });
   };
@@ -108,7 +108,7 @@ const New = () => {
    if(data.categories.length === 0){
       errors.categories = "カテゴリを選択してください"
    }
-   setIsLoading(false); // return の前に必ず実行！
+   setLoading(false); // return の前に必ず実行！
    return errors;
   }
 
@@ -127,12 +127,11 @@ const New = () => {
     
     if(Object.keys(isValid).length>0){ //Object.keys(isValid); は、そのオブジェクトのキーだけの配列を返す["title", "content"]
       setErrors(isValid);
-      setIsLoading(false);
+      setLoading(false);
       return;
     }
 
-    setIsLoading(true);
-    setSuccess(false);
+    setLoading(true);
   
   if(!isValid)return;
     try {//ここで書いた処理を実行してエラーだったらcatchに飛ばす
@@ -171,11 +170,11 @@ const New = () => {
       setErrors(err.message);
       
     } finally { //エラーが発生してもしなくても必ず最後に実行される処理
-      setIsLoading(false);//読み込み中を消す
+      setLoading(false);//読み込み中を消す
     }
   };
 
-  if(isLoading){
+  if(loading){
     return <p>読み込み中...</p>
   };
 
@@ -188,7 +187,6 @@ const New = () => {
         <p className="text-2xl font-bold ">新規作成</p>
 
         <PostForm
-          onSubmit={handleSubmit}
           formData={formData}
           errors={errors}
           isOpen={isOpen}
@@ -197,13 +195,10 @@ const New = () => {
           categories={categories}
           selectedCategories={selectedCategories}
           toggleCategory={toggleCategory}
+          mode="create"
+          loading={loading}
          />
-          
-        <CreateButton
-        type="submit"
-        disabled={isLoading}>
-        作成
-        </CreateButton>
+   
 
       </div>
     </form>

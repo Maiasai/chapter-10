@@ -27,7 +27,7 @@ const categoriesEdit : React.FC = ()=>{
   const {id} = useParams<{ id: string }>();
   console.log(id);
 
-  const [Loading,setLoading] = useState<boolean>(true);
+  const [loading,setLoading] = useState<boolean>(true);
   const [formData,setFormData] = useState<PostCategoryData>({
     name:"",
   })
@@ -54,7 +54,7 @@ const categoriesEdit : React.FC = ()=>{
       }
     } catch(err){
       setLoading(false);
-      setErrors(err.message);  
+      setError(err.message);  
  
     } finally {
       setLoading(false);
@@ -72,18 +72,18 @@ const categoriesEdit : React.FC = ()=>{
     );
   }
 
-  const [errors,setErrors] = useState<PostCategoryErrors>({});
+  const [error,setError] = useState<PostCategoryErrors>({});
 
   //バリデ
   const validateForm = (formData) => {
-    const errors = {};
+    const error = {};
 
   if(!formData.name.trim()){
-    errors.name = "カテゴリー名は必須です"
+    error.name = "カテゴリー名は必須です"
   }  
 
   setLoading(false);
-  return errors;
+  return error;
   }
 
   //更新のAPI
@@ -92,7 +92,7 @@ const categoriesEdit : React.FC = ()=>{
     const isValid:PostCategoryErrors = validateForm(formData);
 
     if(Object.keys(isValid).length>0){
-      setErrors(isValid);
+      setError(isValid);
       setLoading(false);
       return;
     }
@@ -122,14 +122,14 @@ const categoriesEdit : React.FC = ()=>{
       alert("カテゴリー名を更新しました！");
 
     } catch (err) {
-        setErrors(err.message);
+        setError(err.message);
         
     } finally {
         setLoading(false);
     }
    };
 
-   if(Loading){
+   if(loading){
     return <p>読み込み中....</p>
    };
    
@@ -150,18 +150,18 @@ const categoriesEdit : React.FC = ()=>{
       throw new Error (`HTTP ${res.status}-${text}`)
     }
   
-    alert("カテゴリーを削除しました！");
-    window.location.href = "/admin/posts/categories";// 削除後に一覧ページへ遷移
-  
+      alert("カテゴリーを削除しました！");
+      window.location.href = "/admin/posts/categories";// 削除後に一覧ページへ遷移
+    
     }catch (err) {
-    setErrors(err.message);
+      setError(err.message);
    } finally{
-    setLoading(false);
+      setLoading(false);
    }
    }
 
-   if(Loading) return <p>読み込み中...</p>;
-   
+   if(loading) return <p>読み込み中...</p>;
+
 
 return(
   <form
@@ -173,26 +173,14 @@ return(
         name= "name"
         value={formData.name}
         onChange={handleForm}
+        mode="edit"
+        handleDelete={handleDelete}
+        loading={loading}
+        error={error}
       >
 
       </CategoryForm>
-      {errors.name && <p className="text-red-500">{errors.name}</p>}
 
-
-      <CreateButton
-        type="submit"
-        disabled={Loading}
-      >
-        更新
-      </CreateButton>
-
-      <DeleteButton
-        type="submit"
-        onClick={()=>handleDelete(formData.id)}// ここで記事IDを渡す
-        disabled={Loading}
-      >
-        削除
-      </DeleteButton>
 
     </div>
   </form>

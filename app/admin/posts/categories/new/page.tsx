@@ -19,7 +19,7 @@ interface PostCategoryError  {
 
 const categoriesNew = () =>{
 
-  const[isLoading,setIsLoading]=useState<boolean>(false);//送信中かどうかの状態
+  const[loading,setLoading]=useState<boolean>(false);//送信中かどうかの状態
   const[error,setError]=useState<PostCategoryError>("");// エラー表示用
 
 
@@ -44,7 +44,7 @@ const categoriesNew = () =>{
     setError(""); //エラー解除
 
     //APIの呼び出し
-    setIsLoading(true);
+    setLoading(true);
 
     try{     
       const res = await fetch("/api/admin/categories",{
@@ -71,13 +71,13 @@ const categoriesNew = () =>{
       setError(err.message);
 
     }finally{
-      setIsLoading(false);
+      setLoading(false);
 
     }
 
   };
 
-  if(isLoading){
+  if(loading){
     return <p>読み込み中...</p>
   };
 
@@ -92,17 +92,14 @@ const categoriesNew = () =>{
         <CategoryForm
           value={categoryName.name}//categoryName はオブジェクトだけど、表示したいのは name プロパティ
           onChange={handleForm}
+          loading={loading}
+          mode="create"
+          error={error}
         />
 
-        {error && <p className="text-red-500 mt-2">{error}</p>}
 
 
-        <CreateButton 
-          type="submit"
-          disabled={isLoading}
-        >
-          作成
-        </CreateButton>
+
 
       </form>
 

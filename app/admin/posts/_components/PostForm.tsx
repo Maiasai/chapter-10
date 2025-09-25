@@ -1,6 +1,8 @@
 //記事新規作成と編集に渡す用(見た目と入力操作)
 
 import React from "react";
+import CreateButton from "./CreateButton";
+import DeleteButton from "./DeleteButton";
 
 
 //親から受け取るデータと関数の型を定義
@@ -13,11 +15,14 @@ interface Props {
   categories : Category[];
   selectedCategories : Category[];
   toggleCategory : (cat: Category) => void;
+  mode?: "create" | "edit"; //コードを指定（デフォルトはcreate)
+  handleDelete? : (id:number)=> void; //削除用
+  loading : boolean;
 }
 
 
 const PostForm:React.FC<Props> = ({
-  formData,errors,isOpen,setIsOpen,handleForm,handleSubmit,categories,selectedCategories,toggleCategory}) => {
+  formData,errors,isOpen,setIsOpen,handleForm,categories,selectedCategories,toggleCategory,mode="create",handleDelete,loading}) => {
 
 
     return(
@@ -28,14 +33,17 @@ const PostForm:React.FC<Props> = ({
           name = "title"
           value={formData.title}//formDataから反映
           onChange={handleForm}
-          />
+          disabled={loading}
+        />
         {errors.title && <p className="text-red-500">{errors.title}</p>}
 
         <p className="mt-4">内容</p>
         <textarea className="border h-20 p-2 rounded-lg w-full"
           name = "content"
           value = {formData.content}
-          onChange={handleForm}/>
+          onChange={handleForm}
+          disabled={loading}
+        />
         {errors.content && <p className="text-red-500">{errors.content}</p>}
 
 
@@ -44,7 +52,9 @@ const PostForm:React.FC<Props> = ({
           type = "text"
           name = "thumbnailUrl"
           value={formData.thumbnailUrl}
-          onChange={handleForm}/>
+          onChange={handleForm}
+          disabled={loading}
+        />
         {errors.thumbnailUrl && <p className="text-red-500">{errors.thumbnailUrl}</p>}
 
         {/* カテゴリー */}
@@ -98,9 +108,25 @@ const PostForm:React.FC<Props> = ({
         </div>
         )}
 
-        {errors.categories && <p className="text-red-500">{errors.categories}</p>}
+      {errors.categories && <p className="text-red-500">{errors.categories}</p>}
+
+        <div className="flex">
+          <CreateButton
+            type="submit"
+            disabled={loading}
+            >
+            {mode === "create" ? "作成" : "更新"}
+          </CreateButton>
+
+          <DeleteButton
+            type="button"
+            onClick={()=>handleDelete(formData.id)}// ここで記事IDを渡す
+            disabled={loading}
+          >
+            削除
+          </DeleteButton>
             
-        
+        </div>
       </div>
 
     )
