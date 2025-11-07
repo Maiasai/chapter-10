@@ -3,61 +3,67 @@
 import React from "react";
 import CreateButton from "../../_components/CreateButton";
 import DeleteButton from "../../_components/DeleteButton";
+import { useForm, UseFormRegisterReturn, UseFormWatch } from "react-hook-form";
+import { PostCategoryData } from "@_types/postcategorydata";
+import { PostFormData } from "@_types/post";
+
 
 //親から受け取るデータと関数の型を定義
 interface Props {
-  value : string;
-  error : PostCategoryError;
-  onChange : (e: React.ChangeEvent<HTMLInputElement>) => void;
+  register: UseFormRegisterReturn<"name">;
+  error? : string
+  isSubmitting: boolean
+  watch: UseFormWatch<PostCategoryData>;
   mode?: "create" | "edit"; //コードを指定（デフォルトはcreate)
   handleDelete? : (id:number)=> void; //削除用
   loading : boolean;
 }
 
 
-const CategoryForm:React.FC<Props>=({value,error,onChange,mode,handleDelete,loading})=>{
+const CategoryForm:React.FC<Props>=({
+  register,error,isSubmitting,watch,mode,handleDelete,loading
+})=>{
 
-//子はUIの描画を描くだけ。処理は親に任せている。子側では入力欄に関するvalueとonChangeは必要
+
   return(
     <div className="space-y-4">
-    <div>
-      <label className="mt-4">
-        カテゴリー名
-      </label>
+      <div>
+        <label className="mt-4">
+          カテゴリー名
+        </label>
 
-      <input 
-        type = "text"
-        name = "category"
-        value = {value} //inputは文字列で使う
-        onChange = {onChange}
-        disabled={loading}
-        className="border w-full h-8 p-2"
-      />
-            
-      {error.name && <p className="text-red-500">{error.name}</p>}
+        <input 
+          type = "text"
+          {...register}
+          disabled={loading}
+          className="border w-full h-8 p-2"
+        />
+              
+        {error && <p className="text-red-500">{error}</p>}
 
 
 
+      
+        <CreateButton 
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+          ? (mode === "create" ? "作成中..." : "更新中...")
+          : (mode === "create" ? "作成" : "更新")}
 
-      <CreateButton 
-        type="submit"
-        disabled={loading}
-      >
-        {mode === "create" ? "作成" : "更新"}
+        </CreateButton>
 
-      </CreateButton>
+        {mode !== "create" && (
+        <DeleteButton
+          type="button"
+          onClick={()=>handleDelete?.(Number(watch("id")))}//「もし handleDelete が 存在する（＝undefinedじゃない） なら呼び出す。もし存在しないなら 何もしない（スルーする）」
+        >
+        削除
+        </DeleteButton>
+        )}
 
-      {mode !== "create" && (
-      <DeleteButton
-        type="button"
-        onClick={()=>handleDelete(value.id)}// ここで記事IDを渡す
-        disabled={loading}
-      >
-      削除
-      </DeleteButton>
-      )}
-
-    </div>
+      </div>
 
     </div>
 

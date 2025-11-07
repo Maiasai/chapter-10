@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 
-
 export default {
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx}",
@@ -28,8 +27,16 @@ export default {
           'Noto Color Emoji',
         ],
       },
-      colors: {
-        red: '#B91C1C',
+      colors: { // カラーコードで指定可能
+        red: {
+          500: '#B91C1C',
+        },
+        blue: {
+          500: '#1D4ED8',
+        },
+        yellow: {
+          500: '#F59E0B',
+        },
       },
     },
   },

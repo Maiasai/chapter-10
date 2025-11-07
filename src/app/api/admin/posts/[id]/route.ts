@@ -2,6 +2,7 @@
 
 import { NextRequest,NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { supabase } from "../../../../../utils/supabase";
 
 //管理者_記事詳細取得API
 const prisma = new PrismaClient()
@@ -10,6 +11,13 @@ export const GET = async (request:NextRequest,
   { params } : {params:{id:string}}) =>{
     const {id} = params
  
+    const token = request.headers.get('Authorization') ?? ''
+
+    const { error } = await supabase.auth.getUser(token)
+    if ( error )
+      return NextResponse.json({status:error.message},{status:400})
+  
+
   try {
     const post = await prisma.post.findUnique({
       where : {
@@ -41,16 +49,25 @@ export const GET = async (request:NextRequest,
 
 //管理者_記事更新API
 interface UpdatePostRequestBody {
-  title : string
-  content : string
+  title : string;
+  content : string;
   categories : {id:number}[]
-  thumbnailImageKey : string
+  thumbnailImageKey : string;
+  thumbnailImageUrl : string;
+  thumbnailImageName : string;
 }
 
 export const PUT = async (request:NextRequest,
   { params } : { params : {id: string }}) => {
     const {id} = params  // ← URLの [id] がここに入る
-    const {title,content,categories,thumbnailImageKey}:UpdatePostRequestBody = await request.json()
+    const {title,content,categories,thumbnailImageKey,thumbnailImageUrl,thumbnailImageName}:UpdatePostRequestBody = await request.json()
+
+    const token = request.headers.get('Authorization') ?? ''
+
+    const { error } = await supabase.auth.getUser(token)
+
+    if ( error )
+      return NextResponse.json({ status : error.message },{ status : 400 })
 
   try{
      // idを指定して、Postを更新(Prisma が返してくる更新済み記事レコード )
@@ -59,7 +76,7 @@ export const PUT = async (request:NextRequest,
         id : parseInt(id), //どの記事を更新するか指定
       },
       data : {
-        title,content,thumbnailImageKey,
+        title,content,thumbnailImageKey,thumbnailImageUrl,thumbnailImageName
       }
     })
 
@@ -95,6 +112,13 @@ export const PUT = async (request:NextRequest,
 export const DELETE = async (request:NextRequest,
   { params } : { params : {id:string}}) => {
     const {id} = params
+
+    const token = request.headers.get('Authorization') ?? ''
+
+    const { error } = await supabase.auth.getUser(token)
+
+    if ( error )
+      return NextResponse.json({ status:error.message },{ status : 400 })
 
     try{
       await prisma.post.delete({

@@ -1,35 +1,36 @@
+"use client";
+
 //ユーザーが画像ファイルを選択したときに呼ばれるハンドラー。Supabase ストレージにアップロードして、そのファイルのキーを状態に保存するもの
+import { useForm, UseFormSetValue } from "react-hook-form";
 import { supabase } from "../../../../utils/supabase"
 import { v4 as uuidv4 } from 'uuid'  // 固有IDを生成するライブラリ
+import { PostFormData } from "@_types/post";
+import { HandleImageChangeProps } from "@_types/form";
 
-
-interface HandleImageChangeProps {
-  event: ChangeEvent<HTMLInputElement>;
-  setThumbnailImageKey: React.Dispatch<React.SetStateAction<string>>;
-  
-}
 
 //画像入力欄 (<input type="file">) の変更イベントを受け取る関数
 const handleImageChange = async ({
-  event,
-  setThumbnailImageKey
-
- }: HandleImageChangeProps) : Promise<void> => {
-    if (! event.target.files || event.target.files.length === 0 ) {
-    // event.target.files が存在しないか、ファイル数が 0 の場合は return
-      return;
-    }
+  event,//ファイル選択イベント (<input type="file"> が変化した時の情報)
+  setValue
+}: HandleImageChangeProps) : Promise<void> => {
+  if (! event.target.files || event.target.files.length === 0 ) {
+  // event.target.files が存在しないか、ファイル数が 0 の場合は return（誤クリックやキャンセル時の防止処理）
+    return;
+  }
   
 
-  const file = event.target.files[0]// ユーザーが選択した画像を取得（File オブジェクトになる）
-  const uuid = uuidv4();
-  const filePath = `private/${uuid}`;
+  let file = event.target.files[0]// ユーザーが選択した画像を取得（File オブジェクトになる）
+  console.log("ファイル",file)
+  const uuid = uuidv4();//ランダムな一意のIDを作る関数
+  const fileName = file.name;
+  const filePath = `private/${uuid}_${fileName}`;//「post_thumbnail バケット内の private フォルダにこのID名で保存」。
 
+  //supabaseにUUID名で保存
   const { data,error } = await supabase.storage
     .from('post_thumbnail')//Supabaseの管理画面で作成したバケットの名前を指定
     .upload(filePath,file, { // ここで Supabase ストレージにファイルを保存
       cacheControl : '3600',//キャッシュの有効期限を秒単位で指定（これにより同じファイルを再取得するときの通信量を減らせる）
-      upsert : false,// 同じファイル名がある場合は上書きしない
+      upsert : false,// 同じファイル名があっても上書きしない
     })
     //結果：data にファイル情報、error にエラー情報が返る
 
@@ -39,10 +40,16 @@ const handleImageChange = async ({
       return
     }
 
-    // data.pathに、画像固有のkeyが入っているので、thumbnailImageKeyに格納する
+    //ここで公開URLを取得
+    const publicUrl = supabase.storage
+      .from("post_thumbnail")
+      .getPublicUrl(data.path).data.publicUrl;// Supabase上の data.path（＝ファイルのキー）から、「外部アクセス可能なURL」を取得する。
 
-    console.log("アップロード後のpath:", data.path)
-    setThumbnailImageKey(data.path) // ← key 更新のみ
+
+      // ReactHookFormのフォームの状態を更新
+      setValue("thumbnailImageKey", data.path);
+      setValue("thumbnailImageUrl", publicUrl);
+      setValue("thumbnailImageName", file.name);
 }
 
 

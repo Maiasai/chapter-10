@@ -6,45 +6,35 @@ import PostForm from '../_components/PostForm';
 import handleImageChange from '../_components/handleImageChange';
 import useSupacaseSession from '../hooks/useSupabaseSession';
 import useToggleCategory from '../hooks/toggleCategory';
-import ValidateForm from '../_components/validateForm';
+import { useForm,Control } from 'react-hook-form';
+import { PostFormData } from "@_types/post"; 
+import { Category } from '@prisma/client';
 
-
-interface PostFormData {
-  title : string
-  content : string
-  categories : {id:number}[]
-  thumbnailImageKey : string
-}
-
-interface PostFormErrors {
-  title? : string
-  content? : string
-  categories? : string
-  thumbnailImageKey? : string
-}
-
-interface Category {
-  id: number;
-  name: string;
-}
 
 const New = () => {
+
+  const { register,control,setValue,handleSubmit,watch,formState : {errors} ,reset } = useForm<PostFormData>(
+    {defaultValues:{//ここでフォームの初期値を設定
+      title:"",
+      content:"",
+      categories:[],
+      thumbnailImageKey:"",
+      thumbnailImageUrl: "",
+      thumbnailImageName: "",
+    }
+  });
+
+    // watchでプレビューを監視
+    const thumbnailImageUrl = watch("thumbnailImageUrl")
+    const thumbnailImageName = watch("thumbnailImageName")
+  
+  
   
   const [isOpen,setIsOpen]=useState<boolean>(false);//カテゴリ選択欄（プルダウン開閉箇所）
   const [loading,setLoading]=useState<boolean>(false);
-  const [errors, setErrors] = useState<PostFormErrors>({});
-  const [selectedCategories,setSelectedCategories] = useState<Category[]>([]);
-  const [thumbnailImageKey,setThumbnailImageKey] = useState<PostFormData>("");
   const {token} = useSupacaseSession()
-  const [formData,setFormData] = useState<PostFormData>({
-    title : "",
-    content : "",
-    categories : [],
-    thumbnailImageKey:  '', // ファイル選択用
-  });
 
-  const { toggleCategory } = useToggleCategory(setFormData,setSelectedCategories);
-  const { validateForm } = ValidateForm();
+
 
   //カテゴリをAPIから取得
   const[categories,setCategories] = useState<Category[]>([]);
@@ -72,9 +62,9 @@ const New = () => {
           const data = await res.json();
           setCategories(data.posts);
 
-        }catch(err){
+        }catch(err:any){
 
-          setErrors(err.message);
+          console.error(err.message);
 
         } finally {
 
@@ -83,52 +73,22 @@ const New = () => {
         }
       }
         fetchCategories();
-
   },[token]);
 
+  //カテゴリの選択動作　関連
+  const selectedCategories = watch("categories");//現在のフォーム状態のcategoriesを常に監視
 
+  //カスタムフックをセット
+  const {toggleCategory} = useToggleCategory(
+    setValue, // RHF の値を更新する関数
+    ()=>selectedCategories);//カスタムフックに２つの情報を渡してる
 
-
-  // thumbnailImageKey 監視用
-  useEffect(() => {
-    if (thumbnailImageKey) {
-      setFormData(prev => ({
-        ...prev,
-        thumbnailImageKey : thumbnailImageKey,//formData.thumbnailImageKey に thumbnailImageKey の値がセットされる
-      }));
-    }
-  }, [thumbnailImageKey]); // ← thumbnailImageKey が変化したときだけ実行
-  
-
-  const handleForm = (e:React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>)=>{
-    setFormData({
-      ...formData,  // 既存データを保持
-      [e.target.name]:e.target.value}) // name に対応する項目を更新
-  }
-
-  const payload = {
-    title: formData.title,
-    content: formData.content,
-    categories: formData.categories,
-    thumbnailImageKey: thumbnailImageKey, 
-  };
 
   //新規作成のAPI
-  const handleSubmit = async (e:React.FormEvent) => {
+  const onSubmit = async (data:PostFormData) => {
     setLoading(true);
-    e.preventDefault();
-    
-    const isValid:PostFormErrors = validateForm(formData);
-    console.log("payload.thumbnail", payload.thumbnailImageKey) 
 
-    if(Object.keys(isValid).length>0){ //Object.keys(isValid); は、そのオブジェクトのキーだけの配列を返す["title", "content"]
-      console.log(isValid)
-      setErrors(isValid);
-      setLoading(false);
-      return;
-    }
-  
-    setErrors({});
+    console.log("データ", data) 
 
     try {//ここで書いた処理を実行してエラーだったらcatchに飛ばす        
       const res = await fetch('/api/admin/posts', {  
@@ -137,37 +97,44 @@ const New = () => {
           'Content-Type': 'application/json',
           Authorization : token,
         },
-        body: JSON.stringify(payload),
+        body:JSON.stringify({
+          title:data.title,
+          content:data.content,
+          categories:data.categories.map((c) => ({ id: c.id })), // idだけ送る
+          thumbnailImageKey: data.thumbnailImageKey,  // Supabaseパス
+          thumbnailImageUrl: data.thumbnailImageUrl,  // 表示URL
+          thumbnailImageName: data.thumbnailImageName, // ← 元のファイル名
+        })
       });
-
-
-      console.log("ログ:", res);
+     
+ 
 
       if (!res.ok) { //fetchのレスポンスオブジェクトが持ってるプロパティ（HTTPステータスコードが200-299の時trueになる
         const text = await res.text();
         throw new Error (`HTTP ${res.status}-${text}`)
       }
 
-      const data : PostFormData  = await res.json();
-      console.log("作成成功:", payload);
+      const result : PostFormData  = await res.json();
+      
+      console.log("結果:", result);
 
-      // 投稿後にフォームをリセット
-      setFormData({
+      // フォーム全体を初期値に戻す
+      reset({
         title: "",
         content: "",
         categories: [],
-        thumbnailImageKey: undefined, // ファイル選択用
+        thumbnailImageKey: "",
+        thumbnailImageUrl: "",
+        thumbnailImageName: "",
       });
-
-      setSelectedCategories([]); //カテゴリもリセット
       setIsOpen(false); //プルダウンも閉じる
     
       alert("記事を作成しました！");
 
     } catch (err:any) {
 
-      console.error("通信エラー:", err);
-      setErrors(err.message);
+
+      console.error(err.message);
       
     } finally { //エラーが発生してもしなくても必ず最後に実行される処理
       setLoading(false);//読み込み中を消す
@@ -180,20 +147,23 @@ const New = () => {
 
   return(
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmit(onSubmit)}
       className="flex  w-full mt-8 mx-8">
 
       <div className="container flex flex-col w-full">
         <p className="text-2xl font-bold ">新規作成</p>
 
         <PostForm
-          formData={formData}
+          setValue={setValue}
+          register={register}
+          watch={watch}
+          control={control}
           errors={errors}
           isOpen={isOpen}
-          handleForm={handleForm}
-          handleImageChange={handleImageChange}
-          setThumbnailImageKey={setThumbnailImageKey}
           setIsOpen={setIsOpen}
+          handleImageChange={handleImageChange}
+          thumbnailImageUrl={thumbnailImageUrl}
+          thumbnailImageName={thumbnailImageName}
           categories={categories}
           selectedCategories={selectedCategories}
           toggleCategory={toggleCategory}
@@ -201,7 +171,6 @@ const New = () => {
           loading={loading}
          />
    
-
       </div>
     </form>
 

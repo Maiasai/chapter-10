@@ -50,17 +50,27 @@ interface CreatePostRequestBody{
   content :string
   categories : {id : number}[]
   thumbnailImageKey : string;
+  thumbnailImageUrl : string;
+  thumbnailImageName : string;
 }
 
 export const POST = async (request:NextRequest)=>{
+  const token = request.headers.get('Authorization') ?? ''
+  const { error } = await supabase.auth.getUser(token)
+
+
+  if ( error )
+    return NextResponse.json({status:error.message},{status:400})
+
   try{
     const body = await request.json()
-    const {title,content,categories,thumbnailImageKey}:CreatePostRequestBody = body
+    console.log("受け取ったデータ",body)
+    const {title,content,categories,thumbnailImageKey,thumbnailImageUrl,thumbnailImageName}:CreatePostRequestBody = body
 
 
     const post = await prisma.post.create({
       data : {
-        title,content,thumbnailImageKey,
+        title,content,thumbnailImageKey,thumbnailImageUrl,thumbnailImageName
       },
     })
 

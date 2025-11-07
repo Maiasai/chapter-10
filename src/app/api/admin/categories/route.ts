@@ -1,12 +1,21 @@
 
 import { NextRequest,NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { supabase } from "../../../../utils/supabase";
 
 
 //管理者_カテゴリ一覧取得API
 const prisma = new PrismaClient()
 
 export const GET = async (request:NextRequest)=>{
+  const token = request.headers.get('Authorization') ?? '' 
+
+  const { error } = await supabase.auth.getUser(token)//getUser() は返り値として 「data」と「error」両方を持ってる。
+  //「返ってきたオブジェクトのうち error だけを使いたい」って意味
+
+  if ( error )
+    return NextResponse.json({ status:error.message },{ status:400 })
+
   try{
     const posts = await prisma.category.findMany({
       orderBy:{
@@ -33,6 +42,12 @@ interface CreateCategoryRequestBody {
 }
 
 export const POST = async (request:NextRequest)=>{
+  const token = request.headers.get('Authorization') ?? ''
+  const { error } = await supabase.auth.getUser(token)
+
+  if ( error )
+    return NextResponse.json({status:error.message},{status:400})
+
   try{
     const body = await request.json()
     const {name} : CreateCategoryRequestBody = body
@@ -40,6 +55,8 @@ export const POST = async (request:NextRequest)=>{
     const data = await prisma.category.create({
         data :{name},  //nameというオブジェクトからnameプロパティを取り出して、同名の変数nameに代入する→ { "name": "文字列" }
     })
+
+    console.log("受け取った name:", name);
     
       return NextResponse.json({
         status:'OK',

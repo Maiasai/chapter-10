@@ -14,6 +14,8 @@ model Post {
   title          String
   content        String
   thumbnailImageKey String
+  thumbnailImageUrl  String
+  thumbnailImageName String
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   postCategories PostCategory[]

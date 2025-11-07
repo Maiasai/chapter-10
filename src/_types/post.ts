@@ -1,11 +1,10 @@
 "use client"
 
-export type PostData = { 
-    post : string;
-    categories : string[];
-    content : string;
-    createdAt : string ;
-    id : number;
-    thumbnailUrl : string;
-    title : string;
-  };
+export interface PostFormData  { 
+  title : string;
+  content : string;
+  categories : { id : number} [];
+  thumbnailImageKey : string;
+  thumbnailImageUrl : string;
+  thumbnailImageName : string;
+};

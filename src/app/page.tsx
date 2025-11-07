@@ -3,9 +3,8 @@
 "use client";
 
 import React from 'react';
-import { useEffect,useState } from 'react';
 import Link from "next/link";
-import { supabase } from '../utils/supabase';
+import useSWR from 'swr';
 
 
 type Post = {
@@ -15,49 +14,21 @@ type Post = {
   thumbnailImageKey : string
 }
 
+const fetcher = async(url:string)=>{
+  const res = await fetch(url)
+  if (!res.ok){
+    const text = await res.text()
+    throw new Error (`HTTP ${res.status}-${text}`)
+  }
+  return res.json()
+}
 
 const TopPage: React.FC = () => {
-  const [loading, setLoading] = useState< boolean >(false);
-  const [error, setError] = useState< string | null >(null);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const { data , error , isLoading  } = useSWR('/api/posts',fetcher)
 
-
-  // APIから記事データを取得してjsonに変換→postsに渡してる
-  useEffect(() => {
-    const fetcher = async () => {
-    setLoading(true);
-
-    try{
-      const res = await fetch('/api/posts')
-
-      if(!res.ok){
-        const text = await res.text();
-        throw new Error(`HTTP ${res.status}-${text}`)
-      }
-      const data = await res.json();
-
-      console.log("API Response:", data.posts);
-      console.log("最初の記事のカテゴリ:", data.posts[0].postCategories[0].category.name);
-
-      setPosts(data.posts);
-
-    } catch (err: any) {
-
-      setError(err.message);
-
-    } finally {
-
-      setLoading(false); 
-
-    }
-  };
-    fetcher()
-  }, [])
-
-  
-  if (loading) return <p>読み込み中...</p>;
+  if (isLoading) return <p>読み込み中...</p>;
   if (error) return <p>エラーが発生しました: {error}</p>;
-  if (!posts) return <p>データが見つかりませんでした</p>;
+  if (!data?.posts) return <p>データが見つかりませんでした</p>;//data がまだない、または posts プロパティが空ならこのメッセージを表示する
 
 
 
@@ -65,7 +36,7 @@ const TopPage: React.FC = () => {
     <>
     <div className='px-4 my-10 max-w-3xl mx-auto'>
       
-      {posts.map((post) => (
+      {data.posts.map((post) => (
         <Link key={post.id}
           href={`/posts/${post.id}`}
           

@@ -1,56 +1,34 @@
-
 //カテゴリを複数選択できるようにするカスタムフック
 
+import { Category } from "@prisma/client";
+import { UseFormSetValue } from "react-hook-form";
 
-interface Category {
-    id: number;
-    name: string;
-  }
   
-  interface FormData {
-    title: string;
-    content: string;
-    categories: Category[];
-    thumbnailImageKey?: string;
-  }
+
+interface UseCategoryProps {
+  setValue:UseFormSetValue<{ categories: Category[] }>;
+  selectedCategories: Category[];
+}
 
 const useToggleCategory = (
-  setFormData:React.Dispatch<React.SetStateAction<FormData>>,
-  setSelectedCategories:React.Dispatch<React.SetStateAction<Category[]>>) => {
-  
-  const toggleCategory = (cat : Category) => {
+  setValue,
+  selectedCategories
+) => {
 
-    setSelectedCategories ( prev => {
+  const toggleCategory = (cat : Category) => { //catはクリックされたカテゴリオブジェクト
+    const prev = selectedCategories(); //現在選択されているカテゴリの配列を取得
+    const exists = prev.some( c=> c.id === cat.id);//配列内に同じidを持つカテゴリがあるかを判定
 
-      const exists = prev.some(c => Number(c.id) === Number(cat.id)); //条件を満たす要素が一つでもあればtrue
-      let newSelected: Category[];
+    const newSelected = exists 
+      ? prev.filter( c => c.id !== cat.id )//← 同じidは除外して削除
+      :[...prev,{id:cat.id,name:cat.name}]; //そうでない場合　→　配列に追加 (...prev)
 
-    //過去に選んだカテゴリの中に、今回クリックしたカテゴリがあるか確認。→であれば削除
-    if(exists){
-      newSelected = prev.filter ( c => Number(c.id)  !== Number(cat.id));//ここで同じidを持つものを取り除く
-
-    } else {
-    //選択されていなければ追加
-    newSelected = [...prev,{id:Number(cat.id) ,name:cat.name}];
-
-    }
-
-    setFormData(prevForm => ({ //「記事送信フォームに使うデータ」にも反映。
-    ...prevForm,
-    categories: newSelected.map(c => ({ id: Number(c.id), name: c.name}))
-
-
-    }));
-
-      return newSelected;//最終的に更新した配列を返す
-      
-    });
+    setValue("categories",newSelected)//useForm の setValue を使って、フォームの categories を更新。
   }
       
-  return { toggleCategory};
+  return { toggleCategory };
   
 };
 
-  export default useToggleCategory;
-
+export default useToggleCategory;
 //setFormData をカスタムフックに渡すと、カスタムフックは親コンポーネントの状態を直接更新できるため。setFormDataは親に渡す記載はなくてOK

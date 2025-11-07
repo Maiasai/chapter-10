@@ -2,130 +2,81 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import CreateButton from "../../_components/CreateButton";
 import CategoryForm from "../_components/CategoryForm";
 import DeleteButton from "../../_components/DeleteButton";
 import useSupacaseSession from "../../hooks/useSupabaseSession";
+import { useForm } from "react-hook-form";
+import useSWR from "swr";
+import { useEffect, useState } from "react";
+import { PostCategoryData } from "@_types/postcategorydata";
 
-//型宣言
-interface PostCategoryData  {
-  name : string
-}  
 
+//fetcher関数
+const fetcher = async (url: string , token:string) => {
+  console.log("fetcher開始:", url, token);
+  if (!token) throw new Error('No token found'); // 未ログイン扱い
 
-interface PostCategoryErrors {
-  name? :string
-}
+  const res = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token,
+    },
+  });
 
-interface Catgory {
-  id : number;
-  name : string;
-}
+  console.log("fetcherレスポンスステータス:", res.status);
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.log("fetcherレスポンス:", text); 
+    throw new Error(`HTTP ${res.status} - ${text}`);
+  }
+
+  const json = await res.json();
+  console.log("fetcher成功レスポンス:", json);
+  return json;
+};
+
 
 //カテゴリのidから取得
 const categoriesEdit : React.FC = ()=>{
+  const { session, token, isLoading: sessionLoading } = useSupacaseSession(); // ←先に取得
   const {id} = useParams<{ id: string }>();
-  console.log(id);
 
-  const [loading,setLoading] = useState<boolean>(true);
-  const [error,setError] = useState<PostCategoryErrors>({});
-  const [formData,setFormData] = useState<PostCategoryData>({
-    name:"",
-  })
+  const { register,watch,handleSubmit,formState : {errors, isSubmitting} ,reset } = useForm<PostCategoryData>({
+    defaultValues : {name:""},
+  });
 
-  const {token} = useSupacaseSession()
+  //SWRの実行条件と呼び出し
+  const numericId = id ? Number(id) : null;//、「id が存在するなら数値に変換して使う」「なければ null にする」
+  const shouldFetch = Boolean(token && !sessionLoading && numericId);//トークンがあって、セッション読み込みが完了してて　URLパラメータにカテゴリIDがあるならデータを取得してOK
+  const { data, error, isLoading } = useSWR(
+    shouldFetch ? [`/api/admin/categories/${numericId}`, token] : null,//shouldFetchがtrueの時だけSWRが発火（falseだとSWRの実行がされない）
+    ([url, token]) => fetcher(url, token)//ここでfetcher関数を叩いてる
+  );
+    const [loading,setLoading]=useState<boolean>(false);
+
+  //初期データ反映
+  useEffect(() => {
+    if (data?.post?.name) reset({ name: data.post.name });
+  }, [data, reset]);
 
 
-  //API叩いてフォームの初期値を設定
-  useEffect(()=>{
-    if(!token) return
-
-    const fetchCategory = async() => {
+  //更新のAPI
+  const onSubmit = async(data:PostCategoryData)=> {
     setLoading(true);
 
     try{
       const res = await fetch(`/api/admin/categories/${id}`,{
-        headers : {
-          'Content-Type' : 'application/json',
-          Authorization : token,
-        }
-      });
-
-
-    if(!res.ok){
-      const text = await res.text();
-      throw new Error (`HTTP ${res.status}-${text}`)
-    }
-
-      const data = await res.json();
-      console.log("取得データ post:", data);
-
-      if(data.post){
-        setFormData({name:data.post.name});  
-      }
-    } catch(err){
-      setError(err.message);  
- 
-    } finally {
-
-      setLoading(false);
-
-    }
-    };
-      fetchCategory();
-    },[id,token]);
-  
-
-  const handleForm = (e:React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>)=>{
-    setFormData(prev => ({
-      ...prev,
-      name:e.target.value,
-    })
-    );
-  }
-
-
-  //バリデ
-  const validateForm = (formData) => {
-    const error = {};
-
-  if(!formData.name.trim()){
-    error.name = "カテゴリー名は必須です"
-  }  
-
-  setLoading(false);
-  return error;
-  }
-
-  //更新のAPI
-  const handleSubmit = async(e:React.FormEvent)=>{
-    e.preventDefault();
-    const isValid:PostCategoryErrors = validateForm(formData);
-
-    if(Object.keys(isValid).length>0){
-      setError(isValid);
-      setLoading(false);
-      return;
-    }
-
-    setError({});
-
-    try{
-      const catdata = {
-        name : formData.name
-      }
-
-      console.log("入力フォームデータ",catdata);
-      
-      const res = await fetch(`/api/admin/categories/${id}`,{
         method : "PUT",
         headers : {
           "Content-Type" : "application/json",   
-          Authorization : token,    
+          ...(token ? { Authorization: token } : {}), // → token が null の時は空オブジェクト {} になる。 
         },
-        body : JSON.stringify(catdata),
+        body : JSON.stringify({name:data.name.trim()}),
     })
+
+    console.log(res)
 
     if(!res.ok){
         const text = await res.text();//レスポンスボディをテキストとして読み取る。サーバーが JSON で返しているか不明なときに安全に中身を取る方法。
@@ -133,88 +84,83 @@ const categoriesEdit : React.FC = ()=>{
 
         throw new Error (`HTTP ${res.status}-${text}`)
       }
-
       alert("カテゴリー名を更新しました！");
 
-    } catch (err) {
-        setError(err.message);
+
+    } catch (err:any) {
+      console.error(err.message);
         
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
    };
 
-   if(loading){
-    return <p>読み込み中....</p>
-   };
    
-   //削除API
+   //削除API（SWR外で実行）
    const handleDelete = async (postId:number)=>{
     if (!confirm("本当に削除しますか？")) return;
-    setLoading(true);
+      setLoading(true);
 
-    try{
-      const res = await fetch(`/api/admin/categories/${id}`,{
-        method : "DELETE",
-        headers : {
-          Authorization : token,
-        },
-      });
-  
-      console.log("削除レスポンス",res);
+      try{
+        const res = await fetch(`/api/admin/categories/${id}`,{
+          method : "DELETE",
+          headers : {
+            ...(token ? { Authorization: token } : {}), // ← tokenがある時だけ追加
+          },
+        });
     
-    if(!res.ok){
-      const text = await res.text();
-      console.error("削除エラー:",res.status, text);
-      throw new Error (`HTTP ${res.status}-${text}`)
-    }
-  
-      alert("カテゴリーを削除しました！");
-      window.location.href = "/admin/posts/categories";// 削除後に一覧ページへ遷移
-    
-    }catch (err) {
+        console.log("削除レスポンス",res);
+      
+      if(!res.ok){
+        const text = await res.text();
+        console.error("削除エラー:",res.status, text);
+        throw new Error (`HTTP ${res.status}-${text}`)
+      }
 
-      setError(err.message);
-
-   } finally{
-
+        alert("カテゴリーを削除しました！");
+        window.location.href = "/admin/posts/categories";// 削除後に一覧ページへ遷移
+      
+      }catch (err:any) {
+      console.error(err.message);
+    }finally {
       setLoading(false);
-
+    }
    }
-   }
 
-   if(loading) return <p>読み込み中...</p>;
-
+    if (isLoading) return <p>初期データ読み込み中...</p>;
+    if (loading) return <p>処理中...</p>;
+    if(error)return<p>エラーが発生しました</p>;
+    if (!data?.post) return <p>データが見つかりませんでした</p>;
+   
+    console.log("token:", token)
+    console.log('API Response:', data)
+ 
 
 return(
   <form
-    onSubmit = {handleSubmit}
+    onSubmit = {handleSubmit(onSubmit)}
     className="w-full m-10">
       
     <div>
       <h1>カテゴリー更新</h1>
 
       <CategoryForm   
-        name= "name"
-        value={formData.name}
-        onChange={handleForm}
-        mode="edit"
+        register= {register(
+          "name",{
+            required:"カテゴリ名は必須です"
+          }//ここのnameにすでに「name: "name",」が含まれている
+        )}
+        isSubmitting={isSubmitting}
+        watch={watch}
         handleDelete={handleDelete}
-        loading={loading}
-        error={error}
+        error={errors.name?.message}
+        mode="edit"
       >
 
       </CategoryForm>
-
-
     </div>
   </form>
-
-)
-
-};
+)};
     
-
-
 
 export default categoriesEdit;

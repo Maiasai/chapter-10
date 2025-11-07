@@ -3,10 +3,9 @@
 "use client";
 
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
 import Button from './_components/Button';
 import useSupacaseSession from './hooks/useSupabaseSession';
-import { supabase } from '../../../utils/supabase';
+import useSWR from 'swr';
 
 type Post = {
   id: number
@@ -14,57 +13,40 @@ type Post = {
   createdAt : string
 }
 
+
+const fetcher = async (url: string , token:string) => {
+  if (!token) throw new Error('No token found'); // 未ログイン扱い
+
+  const res = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HTTP ${res.status} - ${text}`);
+  }
+
+  return res.json();
+};
+
 const ArticleList = () =>{
-
-  const [postData,setPostData] = useState<Post[]>([]);
-  const [isloading,setIsLoading] = useState< boolean >(true);
-  const [error,setError] = useState< string | null >(null);
   const {token} = useSupacaseSession() //カスタムフックが返すオブジェクトから token を分割代入で取る
+  const { data , error , isLoading } = useSWR(
+    token ? ['/api/admin/posts',token]:null,
+    ([url,token]) => fetcher(url,token)
+  );
 
 
-  //記事一覧をAPIから取得
-  useEffect(()=>{
-    if(!token) return //未ログインの場合は以降の処理を中断
-
-    const fetcher = async () => {
-      try{
-        const res = await fetch('/api/admin/posts',{
-        headers : {
-          'Content-Type' : 'application/json', //リクエストのconst-TypeをJSONに指定
-          Authorization : token, //Headerにtokenを付与(サーバーに自分が正しいユーザーだと証明するための身分証を載せる箱みたいなもの)
-        },
-        })
-        console.log("データ",res);
-
-        if(!res.ok){
-          const text = await res.text();
-          throw new Error(`HTTP ${res.status}-${text}`)
-        }
-        
-        const data : Post  = await res.json()
-        setPostData(data.posts??[]);
-
-      } catch (err: any) {
-
-        setError(err.message)
-
-      } finally {
-
-        setIsLoading(false)
-
-      }
-    }
-    fetcher()
-
-  },[token])
-
-
-
-
-  if(isloading)return<p>読み込み中…</p>;
+  if(isLoading)return<p>読み込み中…</p>;
   if(error)return<p>エラーが発生しました</p>;
+  if (!data?.posts) return <p>データが見つかりませんでした</p>;
   
-  
+  console.log("token:", token)
+  console.log('API Response:', data)
+
   return(
     <div className="w-full mt-8 mx-8">
       <div className="flex justify-between">
@@ -75,7 +57,7 @@ const ArticleList = () =>{
 
       
       <div className="space-y-2 w-full">
-        {postData.map((d) =>(
+        {data.posts.map((d) =>(
           <div key={d.id}
             className="border-b last:border-b-0 pb-8 w-full"
           >

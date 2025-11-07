@@ -6,69 +6,34 @@ import React, { useState } from 'react';
 import CategoryForm from '../_components/CategoryForm';
 import CreateButton from '../../_components/CreateButton';
 import useSupacaseSession from '../../hooks/useSupabaseSession';
-
-
-//型宣言
-interface PostCategoryData  {
-  name : string;
-}
-
-interface PostCategoryError  {
-  name? : string;
-}
+import { useForm } from 'react-hook-form';
+import { PostCategoryData } from '@_types/postcategorydata';
 
 
 const categoriesNew = () =>{
+  const { register,handleSubmit,formState: {errors} , reset } = useForm<PostCategoryData>();
 
   const [loading,setLoading]=useState<boolean>(false);//送信中かどうかの状態
-  const [error,setError]=useState<PostCategoryError>({});// エラー表示用
-  const [formData,setFormData]=useState<PostCategoryData>({ name: "" });// 入力欄の状態を保持(入力欄１つの場合この形でOK)
   const {token} = useSupacaseSession()
 
 
-  const handleForm = (e: React.ChangeEvent<HTMLInputElement>)=>{
-    setFormData ({...formData,
-      name : e.target.value}); //今入力された値を追加/上書き（入力欄が一つだけであれば左記のような書き方でOK）
-  };
-
-
-  //バリデ
-  const validateForm = (formData) => {
-    const error = {};
-
-  if(!formData.name.trim()){
-    error.name = "カテゴリー名は必須です"
-  }  
-
-  setLoading(false);
-  return error;
-  }
-
-
-
   //作成ボタン押下後＞送信処理
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // ページリロード防止（←忘れると画面がリロードされて反応しないように見える）
+  const onSubmit = async (data : PostCategoryData) => {
+    setLoading(true);
 
-    const isValid:PostCategoryErrors = validateForm(formData);
-
-    if(Object.keys(isValid).length>0){
-      setError(isValid);
-      setLoading(false);
-      return;
-    }
-
-    setError({}); //エラー解除
-
-    //APIの呼び出し
 
     try{     
       const res = await fetch('/api/admin/categories',{
         method:"POST",
-        headers:{'Content-Type':'application/json'},
-        Authorization : token,
-        body : JSON.stringify({name:formData.name.trim()}),//JSON形式にするためにオブジェクト化
+        headers:{
+          'Content-Type':'application/json',
+          Authorization : token,
+        },
+
+        body : JSON.stringify({name:data.name.trim()}),//JSON形式にするためにオブジェクト化
       });
+
+      console.log(res) 
   
     if (!res.ok) { //fetchのレスポンスオブジェクトが持ってるプロパティ（HTTPステータスコードが200-299の時trueになる
       const text = await res.text();
@@ -77,16 +42,14 @@ const categoriesNew = () =>{
 
 
     //成功だった場合の処理
-    const data = await res.json();
-    console.log("レスポンス:", res.status, data); // ←ここで原因わかる
-
+    const d = await res.json();
+    console.log("レスポンス:", res.status, d); // ←ここで原因わかる
 
     alert("カテゴリを作成しました！");
-    setFormData({name:""}); //成功したら入力欄をクリア
+    reset(); //成功したら入力欄をクリア
       
     } catch(err:any){
-      setError(err.message);
-
+      console.error(err.message);
     }finally{
       setLoading(false);
 
@@ -101,21 +64,21 @@ const categoriesNew = () =>{
 
     return(
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}//フォーム送信＞ここが呼ばれると、register() で登録されたすべてのフィールドをチェック
         className="w-full m-10">
 
         <h1 className="font-bold">カテゴリー作成</h1>
 
         <CategoryForm
-          value={formData.name}//formData はオブジェクトだけど、表示したいのは name プロパティ
-          onChange={handleForm}
-          loading={loading}
-          mode="create"
-          error={error}
+          register = {register(
+            "name",{  //nameというフィールドをフォーム管理に登録（もし空ならエラーもセットしてねって意味）
+            required:"カテゴリ名は必須です" //ここに書いたエラーが、自動的に「formState.errors」に格納される
+          })}
+          error = {errors.name?.message}
+          loading = {loading}
+          mode = "create"
         />
-
       </form>
-
     )  
 };
 
