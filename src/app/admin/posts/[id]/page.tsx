@@ -8,8 +8,8 @@ import handleImageChange from '../_components/handleImageChange';
 import useSupacaseSession from '../hooks/useSupabaseSession';
 import useToggleCategory from '../hooks/toggleCategory';
 import { useForm } from 'react-hook-form';
-import useSWR from 'swr';
 import { Category } from "@_types/category";
+import { useFetch } from '../hooks/useFetch';
 
 
 interface PostFormData {
@@ -20,32 +20,11 @@ interface PostFormData {
     thumbnailImageUrl : string;
     thumbnailImageName : string;
   }
-  
 
-//fetcher関数
-const fetcher = async (url: string , token:string) => {
-  console.log("fetcher開始:", url, token);
-  if (!token) throw new Error('No token found'); // 未ログイン扱い
-
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token,
-    },
-  });
-
-  console.log("fetcherレスポンスステータス:", res.status);
-
-  if (!res.ok) {
-    const text = await res.text();
-    console.log("fetcherレスポンス:", text); 
-    throw new Error(`HTTP ${res.status} - ${text}`);
-  }
-
-  const json = await res.json();
-  console.log("fetcher成功レスポンス:", json);
-  return json;
-};
+  type PostResponse = {
+    tatus: string;      // "OK" など
+    post: PostFormData; // post が実際のデータ
+  };
 
 
 //記事のidから取得
@@ -59,11 +38,15 @@ const Edit: React.FC = () => {
 
   //SWRの実行条件と呼び出し
   const shouldFetch = Boolean(token && !sessionLoading && id);//トークンがあって、セッション読み込みが完了してて　URLパラメータにカテゴリIDがあるならデータを取得してOK
-  const { data, error, isLoading } = useSWR(
-    shouldFetch ? [`/api/admin/categories/${id}`, token] : null,//shouldFetchがtrueの時だけSWRが発火（falseだとSWRの実行がされない）
-    ([url, token]) => fetcher(url, token)//ここでfetcher関数を叩いてる
-  );
+  const { data, error, isLoading } = useFetch<PostResponse>(
+    shouldFetch ? `/api/admin/posts/${id}` : null , token
+  );//shouldFetch?がtrueならAPIのURLを返す。falseならnullを返す
 
+  console.log("token:", token);
+  console.log("data:", data);
+  console.log("error:", error);
+  console.log("isLoading:", isLoading);
+  
   const {register,control,setValue,handleSubmit,watch,formState:{errors},reset} = useForm<PostFormData>(
     {defaultValues:{
       title: "",
@@ -106,7 +89,6 @@ const Edit: React.FC = () => {
     }
       const data = await res.json();
 
-      
     if(data?.post){
 
       console.log("取得データ＞カテゴリ内容", data.post.postCategories.map(c=>({id:c.category.id,
@@ -172,7 +154,6 @@ const Edit: React.FC = () => {
   useEffect(() => {
     console.log("categories 更新後:", categories);
   }, [categories]);
-
 
 
 //更新のAPI
@@ -273,6 +254,10 @@ const handleDelete = async (postId:number)=> {
   if (loading) return <p>処理中...</p>;
   if(error)return<p>エラーが発生しました</p>;
   if (!data?.post) return <p>データが見つかりませんでした</p>;
+
+ 
+  console.log("token:", token)
+  console.log('API Response:', data)
 
 return (
 

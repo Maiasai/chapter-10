@@ -52,9 +52,7 @@ const categoriesNew = () =>{
       console.error(err.message);
     }finally{
       setLoading(false);
-
     }
-
   };
 
   if(loading){

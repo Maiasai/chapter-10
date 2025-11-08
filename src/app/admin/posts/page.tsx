@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import Button from './_components/Button';
 import useSupacaseSession from './hooks/useSupabaseSession';
-import useSWR from 'swr';
+import { useFetch } from './hooks/useFetch';
 
 type Post = {
   id: number
@@ -14,38 +14,17 @@ type Post = {
 }
 
 
-const fetcher = async (url: string , token:string) => {
-  if (!token) throw new Error('No token found'); // 未ログイン扱い
-
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token,
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`HTTP ${res.status} - ${text}`);
-  }
-
-  return res.json();
-};
-
 const ArticleList = () =>{
-  const {token} = useSupacaseSession() //カスタムフックが返すオブジェクトから token を分割代入で取る
-  const { data , error , isLoading } = useSWR(
-    token ? ['/api/admin/posts',token]:null,
-    ([url,token]) => fetcher(url,token)
-  );
-
+  const {token} = useSupacaseSession() //ユーザーがログインしていれば、カスタムフックが返すオブジェクトから token を分割代入で取る。
+  const { data : post , error , isLoading } = useFetch<Post>(
+    '/api/admin/posts',token);//useFetchに渡るURLとtoken
 
   if(isLoading)return<p>読み込み中…</p>;
   if(error)return<p>エラーが発生しました</p>;
-  if (!data?.posts) return <p>データが見つかりませんでした</p>;
+  if (!post?.posts) return <p>データが見つかりませんでした</p>;
   
   console.log("token:", token)
-  console.log('API Response:', data)
+  console.log('API Response:', post)
 
   return(
     <div className="w-full mt-8 mx-8">
@@ -54,10 +33,9 @@ const ArticleList = () =>{
         <Link href='posts/new'><Button>新規作成</Button></Link>
       
       </div>
-
       
       <div className="space-y-2 w-full">
-        {data.posts.map((d) =>(
+        {post.posts.map((d) =>(
           <div key={d.id}
             className="border-b last:border-b-0 pb-8 w-full"
           >

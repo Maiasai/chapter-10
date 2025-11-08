@@ -5,7 +5,8 @@
 import Link from 'next/link';
 import Button from '../_components/Button';
 import useSupacaseSession from '../hooks/useSupabaseSession';
-import useSWR from 'swr';
+import { useFetch } from '../hooks/useFetch';
+import { Category } from '@prisma/client';
 
 type Cat = {
   id:number; 
@@ -13,38 +14,19 @@ type Cat = {
 };
 
 
-const fetcher = async (url: string , token:string) => {
-  if (!token) throw new Error('No token found'); // 未ログイン扱い
-
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token,
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`HTTP ${res.status} - ${text}`);
-  }
-
-  return res.json();
-};
-
 const categoriesList = () =>{
   const {token} = useSupacaseSession()
-  const { data , error , isLoading } = useSWR(
-    token ? ['/api/admin/categories',token]:null,
-    ([url,token]) => fetcher(url,token)
+  const { data:categories , error , isLoading } = useFetch<Category[]>(
+    '/api/admin/categories',token
   );
 
 
-  if(isLoading) return <p>読み込み中...</p>;
-  if(error) return <p>エラーが発生しました</p>;
-  if (!data?.posts) return <p>データが見つかりませんでした</p>;
+  if (isLoading) return <p>読み込み中...</p>;
+  if (error) return <p>エラーが発生しました</p>;
+  if (!categories?.posts) return <p>データが見つかりませんでした</p>;//初回レンダーのタイミングでcategiresにはデータがまだきていない状態なのでそこをスルーするために「？」をつける
   
   console.log("token:", token)
-  console.log('API Response:', data)
+  console.log('API Response:', categories)
 
 
 return(
@@ -56,7 +38,7 @@ return(
       </Link>
     </div>
       <div className="flex flex-col">
-        {data.posts.map((c)=> (
+        {categories.posts.map((c)=> (
           <div key={c.id}
             className="font-bold border-b last:border-b-0 p-6 w-full"
           >

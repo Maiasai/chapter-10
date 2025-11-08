@@ -7,36 +7,15 @@ import CategoryForm from "../_components/CategoryForm";
 import DeleteButton from "../../_components/DeleteButton";
 import useSupacaseSession from "../../hooks/useSupabaseSession";
 import { useForm } from "react-hook-form";
-import useSWR from "swr";
 import { useEffect, useState } from "react";
 import { PostCategoryData } from "@_types/postcategorydata";
+import { useFetch } from "../../hooks/useFetch";
 
 
-//fetcher関数
-const fetcher = async (url: string , token:string) => {
-  console.log("fetcher開始:", url, token);
-  if (!token) throw new Error('No token found'); // 未ログイン扱い
-
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token,
-    },
-  });
-
-  console.log("fetcherレスポンスステータス:", res.status);
-
-  if (!res.ok) {
-    const text = await res.text();
-    console.log("fetcherレスポンス:", text); 
-    throw new Error(`HTTP ${res.status} - ${text}`);
-  }
-
-  const json = await res.json();
-  console.log("fetcher成功レスポンス:", json);
-  return json;
+type CategoryResponse = {
+  status: string;      // "OK" など
+  post: PostCategoryData; // post が実際のデータ
 };
-
 
 //カテゴリのidから取得
 const categoriesEdit : React.FC = ()=>{
@@ -50,10 +29,9 @@ const categoriesEdit : React.FC = ()=>{
   //SWRの実行条件と呼び出し
   const numericId = id ? Number(id) : null;//、「id が存在するなら数値に変換して使う」「なければ null にする」
   const shouldFetch = Boolean(token && !sessionLoading && numericId);//トークンがあって、セッション読み込みが完了してて　URLパラメータにカテゴリIDがあるならデータを取得してOK
-  const { data, error, isLoading } = useSWR(
-    shouldFetch ? [`/api/admin/categories/${numericId}`, token] : null,//shouldFetchがtrueの時だけSWRが発火（falseだとSWRの実行がされない）
-    ([url, token]) => fetcher(url, token)//ここでfetcher関数を叩いてる
-  );
+  const { data, error, isLoading } = useFetch<CategoryResponse>(
+    shouldFetch ? `/api/admin/categories/${numericId}` : null, token);//shouldFetchがtrueの時だけSWRが発火（falseだとSWRの実行がされない）
+
     const [loading,setLoading]=useState<boolean>(false);
 
   //初期データ反映
