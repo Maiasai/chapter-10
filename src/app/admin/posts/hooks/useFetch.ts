@@ -1,6 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
+import useSupacaseSession from './useSupabaseSession'
 
 // 認証付き fetcher
 const fetcherWithToken = async (url: string, token: string): Promise<T>=> {//urlは呼び出し元（useFetch）から渡される APIのエンドポイント　例：'/api/admin/posts'
@@ -21,7 +22,8 @@ const fetcherWithToken = async (url: string, token: string): Promise<T>=> {//url
 }
 
 // カスタムフック
-export const useFetch = <T>(url: string | null, token?: string) => {
+export const useFetch = <T>(url: string | null) => {
+    const {token} = useSupacaseSession() //ユーザーがログインしていれば、カスタムフックが返すオブジェクトから token を分割代入で取る。
     const shouldFetch = Boolean(url && token);//ここで「URL と token が両方あるか」をチェック。
     const { data, error, isLoading, mutate } = useSWR<T>(
       shouldFetch ? [url, token] : null,//両方揃った時だけ発動！

@@ -19,7 +19,7 @@ type CategoryResponse = {
 
 //カテゴリのidから取得
 const categoriesEdit : React.FC = ()=>{
-  const { session, token, isLoading: sessionLoading } = useSupacaseSession(); // ←先に取得
+  const { session, isLoading: sessionLoading } = useSupacaseSession(); // ←先に取得
   const {id} = useParams<{ id: string }>();
 
   const { register,watch,handleSubmit,formState : {errors, isSubmitting} ,reset } = useForm<PostCategoryData>({
@@ -28,9 +28,8 @@ const categoriesEdit : React.FC = ()=>{
 
   //SWRの実行条件と呼び出し
   const numericId = id ? Number(id) : null;//、「id が存在するなら数値に変換して使う」「なければ null にする」
-  const shouldFetch = Boolean(token && !sessionLoading && numericId);//トークンがあって、セッション読み込みが完了してて　URLパラメータにカテゴリIDがあるならデータを取得してOK
-  const { data, error, isLoading } = useFetch<CategoryResponse>(
-    shouldFetch ? `/api/admin/categories/${numericId}` : null, token);//shouldFetchがtrueの時だけSWRが発火（falseだとSWRの実行がされない）
+ const { data, error, isLoading } = useFetch<CategoryResponse>(
+    id ? `/api/admin/categories/${numericId}` : null);//shouldFetchがtrueの時だけSWRが発火（falseだとSWRの実行がされない）
 
     const [loading,setLoading]=useState<boolean>(false);
 
@@ -110,7 +109,6 @@ const categoriesEdit : React.FC = ()=>{
     if(error)return<p>エラーが発生しました</p>;
     if (!data?.post) return <p>データが見つかりませんでした</p>;
    
-    console.log("token:", token)
     console.log('API Response:', data)
  
 

@@ -15,9 +15,8 @@ type Cat = {
 
 
 const categoriesList = () =>{
-  const {token} = useSupacaseSession()
   const { data:categories , error , isLoading } = useFetch<Category[]>(
-    '/api/admin/categories',token
+    '/api/admin/categories'
   );
 
 
@@ -25,7 +24,6 @@ const categoriesList = () =>{
   if (error) return <p>エラーが発生しました</p>;
   if (!categories?.posts) return <p>データが見つかりませんでした</p>;//初回レンダーのタイミングでcategiresにはデータがまだきていない状態なのでそこをスルーするために「？」をつける
   
-  console.log("token:", token)
   console.log('API Response:', categories)
 
 

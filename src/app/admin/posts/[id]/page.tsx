@@ -29,7 +29,7 @@ interface PostFormData {
 
 //記事のidから取得
 const Edit: React.FC = () => {
-  const {session, token, isLoading: sessionLoading} = useSupacaseSession();
+  const {session, isLoading: sessionLoading} = useSupacaseSession();
   const {id} = useParams(); //URL記事のID
 
   const [isOpen,setIsOpen]=useState<boolean>(false);//カテゴリ選択欄（プルダウン開閉箇所）
@@ -37,12 +37,10 @@ const Edit: React.FC = () => {
   const [categories,setCategories] = useState<Category[]>([]);
 
   //SWRの実行条件と呼び出し
-  const shouldFetch = Boolean(token && !sessionLoading && id);//トークンがあって、セッション読み込みが完了してて　URLパラメータにカテゴリIDがあるならデータを取得してOK
   const { data, error, isLoading } = useFetch<PostResponse>(
-    shouldFetch ? `/api/admin/posts/${id}` : null , token
+    id ? `/api/admin/posts/${id}` : null
   );//shouldFetch?がtrueならAPIのURLを返す。falseならnullを返す
 
-  console.log("token:", token);
   console.log("data:", data);
   console.log("error:", error);
   console.log("isLoading:", isLoading);
@@ -114,13 +112,13 @@ const Edit: React.FC = () => {
   } 
   };
     fetchPost();
-  },[id,token]);
+  },[id]);
 
  
   //カテゴリをAPIから取得
 
   useEffect(()=>{
-    if(!id || !token )return; //idがない場合は何もしない
+    if(!id)return; //idがない場合は何もしない
     const fetchCategories = async() => {
       try{
         const res = await fetch("/api/admin/categories",{
@@ -147,8 +145,7 @@ const Edit: React.FC = () => {
       } 
     }
    fetchCategories();
-  },[id,token]);//[]内（第二引数）が変化した場合、再度APIを呼ぶ
-
+  },[id]);
 
   // categories の更新後を監視
   useEffect(() => {
@@ -256,7 +253,6 @@ const handleDelete = async (postId:number)=> {
   if (!data?.post) return <p>データが見つかりませんでした</p>;
 
  
-  console.log("token:", token)
   console.log('API Response:', data)
 
 return (

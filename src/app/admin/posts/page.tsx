@@ -4,7 +4,6 @@
 
 import Link from 'next/link';
 import Button from './_components/Button';
-import useSupacaseSession from './hooks/useSupabaseSession';
 import { useFetch } from './hooks/useFetch';
 
 type Post = {
@@ -15,15 +14,13 @@ type Post = {
 
 
 const ArticleList = () =>{
-  const {token} = useSupacaseSession() //ユーザーがログインしていれば、カスタムフックが返すオブジェクトから token を分割代入で取る。
-  const { data : post , error , isLoading } = useFetch<Post>(
-    '/api/admin/posts',token);//useFetchに渡るURLとtoken
+ const { data : post , error , isLoading } = useFetch<Post>(
+    '/api/admin/posts');//useFetchに渡るURLとtoken
 
   if(isLoading)return<p>読み込み中…</p>;
   if(error)return<p>エラーが発生しました</p>;
   if (!post?.posts) return <p>データが見つかりませんでした</p>;
   
-  console.log("token:", token)
   console.log('API Response:', post)
 
   return(
