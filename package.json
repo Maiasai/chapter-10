@@ -9,9 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.58.0",
+    "@types/uuid": "^10.0.0",
     "next": "14.2.16",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-hook-form": "^7.64.0",
+    "swr": "^2.3.6",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
